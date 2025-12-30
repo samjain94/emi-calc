@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EMI Calculator – Attractive UI + Icons (Responsive Charts)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{ --bg1:#0b1020; --bg2:#10162f; --text:#e5e7eb; --muted:#9ca3af; --border:#1f2937; --primary:#6d28d9; --teal:#14b8a6; --green:#22c55e; --amber:#f59e0b; --red:#ef4444; }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: Inter, Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, #1b2b6a 0%, transparent 70%),
+                  radial-gradient(1000px 500px at 100% 0%, #0e224d 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));}
+    .container{max-width:1200px; margin:0 auto; padding:24px}
+
+    /* Hero */
+    .hero{position:relative; overflow:hidden; border-radius:20px; margin-bottom:20px;
+      background: linear-gradient(135deg, #0f172a, #0b3767);
+      border:1px solid #1f2a44; box-shadow:0 10px 30px rgba(0,0,0,.35);
+      display:grid; grid-template-columns: 1.1fr 0.9fr;}
+    @media (max-width:1000px){.hero{grid-template-columns:1fr}}
+    .hero-content{padding:26px}
+    .hero h1{font-family:Poppins; font-weight:700; letter-spacing:.3px; margin:0 0 10px; font-size:2rem}
+    .hero p{color:var(--muted); margin:0 0 18px}
+    .hero .cta{display:flex; gap:10px}
+    .cta .btn{background:var(--primary)}
+    .hero-art{position:relative; padding:0 20px 0 0}
+    .hero-svg{width:100%; height:auto; min-height:230px}
+
+    .icon-strip{display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:10px}
+    .icon-chip{display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:999px; background:#0b1222; color:#cbd5e1}
+    .icon-chip svg{width:20px; height:20px}
+
+    .grid{display:grid; grid-template-columns: 1.1fr 0.9fr; gap:18px}
+    @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(17,24,39,.9); border:1px solid var(--border); border-radius:16px; padding:18px; backdrop-filter: blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    .card h2{margin:0 0 12px; font-family:Poppins; font-weight:600; display:flex; align-items:center; gap:10px}
+    .card h2 svg{width:22px; height:22px}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    @media (max-width:720px){.row{grid-template-columns:1fr}}
+    label{font-size:.9rem; color:var(--muted); display:flex; align-items:center; gap:6px}
+    .label-icon{width:18px; height:18px}
+    input[type=number], input[type=month], select{width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:#0b1222; color:var(--text)}
+    .btn{background:var(--teal); color:white; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700}
+    .btn.secondary{background:var(--green)}
+    .btn.purple{background:var(--primary)}
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{border:1px solid var(--border); border-radius:999px; padding:6px 10px; color:var(--muted); font-size:.85rem}
+
+    /* Charts layout */
+    .charts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+    @media (max-width:900px){.charts{grid-template-columns:1fr}}
+    .chart-box{background:#0b1222; border:1px solid var(--border); border-radius:14px; padding:8px; display:flex; align-items:center; justify-content:center}
+    .chart-box canvas{width:100% !important; height:auto !important; max-height:42vh}
+    @media (max-width:900px){ .chart-box canvas{ max-height:32vh } }
+    @media (max-width:600px){ .chart-box canvas{ max-height:28vh } }
+
+    /* Table styles */
+    .table-wrap{position:relative; border:1px solid var(--border); border-radius:16px; overflow:hidden;}
+    .toolbar{display:flex; gap:10px; align-items:center; justify-content:space-between; padding:10px 12px; background:#0b1222; border-bottom:1px solid var(--border)}
+    .toolbar .title{font-weight:700; display:flex; gap:8px; align-items:center}
+    .toolbar .title svg{width:22px; height:22px}
+    .toolbar .controls{display:flex; gap:8px; align-items:center}
+    .search{background:#0f1730; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:8px 10px; width:220px}
+    .table-scroll{max-height:460px; overflow:auto}
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    thead th{position:sticky; top:0; background:#0f172a; color:#cbd5e1; font-weight:700; text-align:right; padding:10px; border-bottom:1px solid var(--border); z-index:1}
+    thead th:first-child{text-align:left}
+    tbody td{padding:10px; border-bottom:1px solid rgba(31,41,55,.6); text-align:right}
+    tbody td:first-child{text-align:left}
+    tbody tr:nth-child(odd){background:rgba(11,18,34,.6)}
+    tbody tr:nth-child(even){background:rgba(11,18,34,.3)}
+    tbody tr:hover{background:rgba(99,102,241,.18)}
+    .sortable{cursor:pointer; display:flex; align-items:center; justify-content:flex-end; gap:6px}
+    .sortable.left{justify-content:flex-start}
+    .sort-ind{font-size:.8rem; color:#94a3b8}
+    .pagination{display:flex; align-items:center; justify-content:flex-end; gap:6px; padding:10px; background:#0b1222; border-top:1px solid var(--border)}
+    .page-btn{padding:8px 10px; background:#0f1730; border:1px solid var(--border); color:#e5e7eb; border-radius:8px; cursor:pointer}
+    .page-btn:disabled{opacity:.5; cursor:not-allowed}
+    .page-info{color:#9ca3af; margin-left:auto}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Plan Your Loan Smartly</h1>
+        <p>Beautiful, fast, and precise EMI calculator with charts, prepayments, XLSX export, and a clean visual design.</p>
+        <div class="cta">
+          <button class="btn" onclick="document.getElementById('amount').focus()">Start Calculating</button>
+          <button class="btn purple" onclick="window.print()">Print</button>
+        </div>
+        <div class="icon-strip">
+          <div class="icon-chip"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 11l9-7 9 7v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3v-8z" stroke="#6d28d9" stroke-width="2"/></svg>Home Loan</div>
+          <div class="icon-chip"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 16l2-6h12l2 6" stroke="#14b8a6" stroke-width="2"/><circle cx="7" cy="17" r="2" fill="#14b8a6"/><circle cx="17" cy="17" r="2" fill="#14b8a6"/></svg>Car Loan</div>
+          <div class="icon-chip"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="6" width="18" height="12" rx="3" stroke="#22c55e" stroke-width="2"/><text x="12" y="14" text-anchor="middle" font-size="8" fill="#22c55e">₹</text></svg>Personal Loan</div>
+        </div>
+      </div>
+      <div class="hero-art">
+        <svg class="hero-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Finance illustration">
+          <defs>
+            <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6d28d9"/><stop offset="100%" stop-color="#14b8a6"/></linearGradient>
+            <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+          </defs>
+          <rect x="30" y="40" width="190" height="120" rx="14" fill="#0b1222" stroke="#1f2937"/>
+          <rect x="50" y="70" width="80" height="12" rx="6" fill="url(#grad1)"/>
+          <rect x="50" y="92" width="120" height="12" rx="6" fill="#334155"/>
+          <rect x="240" y="40" width="160" height="120" rx="14" fill="#0b1222" stroke="#1f2937"/>
+          <rect x="260" y="65" width="120" height="70" rx="10" fill="#0f172a" stroke="#1f2937"/>
+          <path d="M270 115 L290 95 L310 110 L330 85 L350 95" stroke="url(#grad2)" stroke-width="6" fill="none" />
+          <circle cx="350" cy="95" r="6" fill="#f59e0b"/>
+          <rect x="420" y="40" width="170" height="120" rx="14" fill="#0b1222" stroke="#1f2937"/>
+          <rect x="440" y="65" width="130" height="70" rx="10" fill="#0f172a" stroke="#1f2937"/>
+          <rect x="440" y="65" width="40" height="70" rx="10" fill="#162045"/>
+          <rect x="490" y="65" width="40" height="70" rx="10" fill="#1b2b6a"/>
+          <rect x="540" y="65" width="30" height="70" rx="8" fill="#233a7d"/>
+          <circle cx="100" cy="220" r="25" fill="#f59e0b" stroke="#fbbf24"/>
+          <circle cx="130" cy="220" r="25" fill="#f59e0b" stroke="#fbbf24" opacity="0.8"/>
+          <circle cx="160" cy="220" r="25" fill="#f59e0b" stroke="#fbbf24" opacity="0.6"/>
+          <text x="100" y="226" fill="#1f2937" font-size="18" font-family="Poppins" text-anchor="middle">₹</text>
+          <text x="130" y="226" fill="#1f2937" font-size="18" font-family="Poppins" text-anchor="middle">₹</text>
+          <text x="160" y="226" fill="#1f2937" font-size="18" font-family="Poppins" text-anchor="middle">₹</text>
+        </svg>
+      </div>
+    </section>
+
+    <div class="grid">
+      <!-- INPUTS -->
+      <div class="card" aria-label="Inputs">
+        <h2><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 3h6l1 2h3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5h3l1-2z" stroke="#6d28d9" stroke-width="2"/></svg>Loan Details</h2>
+        <div class="row">
+          <div>
+            <label for="amount"><svg class="label-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><text x="12" y="16" text-anchor="middle" font-size="10" fill="#22c55e">₹</text></svg> Loan amount (₹)</label>
+            <input id="amount" type="number" min="0" step="1000" placeholder="e.g., 25,00,000" />
+          </div>
+          <div>
+            <label for="rate"><svg class="label-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12h16" stroke="#14b8a6" stroke-width="2"/></svg> Annual interest rate (%)</label>
+            <input id="rate" type="number" min="0" step="0.01" placeholder="e.g., 8.5" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Tenure</label>
+            <div class="row" style="gap:8px">
+              <div><input id="tenureY" type="number" min="0" step="1" placeholder="Years" /></div>
+              <div><input id="tenureM" type="number" min="0" step="1" placeholder="Months" /></div>
+            </div>
+          </div>
+          <div>
+            <label for="startDate"><svg class="label-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#6d28d9" stroke-width="2"/><path d="M8 2v4M16 2v4" stroke="#6d28d9" stroke-width="2"/></svg> Start date (month & year)</label>
+            <input id="startDate" type="month" />
+          </div>
+        </div>
+
+        <h2><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l9 6-9 6-9-6 9-6z" stroke="#14b8a6" stroke-width="2"/></svg>Homeowner Expenses (optional)</h2>
+        <div class="row">
+          <div>
+            <label for="propTax">Property taxes (₹/year)</label>
+            <input id="propTax" type="number" min="0" step="100" />
+          </div>
+          <div>
+            <label for="homeIns">Home insurance (₹/year)</label>
+            <input id="homeIns" type="number" min="0" step="100" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="maint">Maintenance (₹/month)</label>
+            <input id="maint" type="number" min="0" step="100" />
+          </div>
+          <div>
+            <label for="fees">Processing fees & charges (₹, one-time)</label>
+            <input id="fees" type="number" min="0" step="500" />
+          </div>
+        </div>
+
+        <h2><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12h10M14 12l4-4m-4 4 4 4" stroke="#22c55e" stroke-width="2"/></svg>Prepayments</h2>
+        <div class="row">
+          <div>
+            <label for="monthlyExtra">Monthly extra payment (₹)</label>
+            <input id="monthlyExtra" type="number" min="0" step="100" />
+          </div>
+          <div>
+            <label for="prepayMode">Prepayment strategy</label>
+            <select id="prepayMode">
+              <option value="reduceTenure">Reduce tenure (keep EMI same)</option>
+              <option value="reduceEMI">Reduce EMI (keep tenure same)</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="prepayStart">Start of prepayment (month offset)</label>
+            <input id="prepayStart" type="number" min="0" step="1" />
+          </div>
+          <div>
+            <label for="prepayEnd">End of prepayment (month offset)</label>
+            <input id="prepayEnd" type="number" min="0" step="1" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="lumpSum">Lump-sum prepayment (₹)</label>
+            <input id="lumpSum" type="number" min="0" step="1000" />
+          </div>
+          <div>
+            <label for="lumpMonth">Lump-sum month offset</label>
+            <input id="lumpMonth" type="number" min="0" step="1" />
+          </div>
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn" id="calcBtn">Calculate</button>
+          <button class="btn secondary" id="resetBtn">Reset</button>
+        </div>
+      </div>
+
+      <!-- SUMMARY + CHARTS -->
+      <div class="card" aria-label="Summary">
+        <h2><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="#6d28d9" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#6d28d9" stroke-width="2"/></svg>Summary & Charts</h2>
+        <div class="chips">
+          <div class="chip">Monthly EMI: <span id="emiOut">–</span></div>
+          <div class="chip">Total Interest: <span id="totalIntOut">–</span></div>
+          <div class="chip">Total Payment (P+I): <span id="totalPayOut">–</span></div>
+          <div class="chip">Grand Total (incl. expenses): <span id="grandTotalOut">–</span></div>
+        </div>
+        <div class="chips">
+          <div class="chip">Property tax / mo: <span id="ptMo">–</span></div>
+          <div class="chip">Insurance / mo: <span id="insMo">–</span></div>
+          <div class="chip">Maintenance / mo: <span id="maintMo">–</span></div>
+          <div class="chip">Total monthly (EMI + expenses): <span id="totalMonthly">–</span></div>
+        </div>
+        <div class="charts">
+          <div class="chart-box"><canvas id="donutChart"></canvas></div>
+          <div class="chart-box"><canvas id="yearlyChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="margin-top:18px" aria-label="Amortization schedule">
+      <div class="table-wrap">
+        <div class="toolbar">
+          <div class="title"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#14b8a6" stroke-width="2"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#14b8a6" stroke-width="2"/></svg>Amortization Schedule (Monthly)</div>
+          <div class="controls">
+            <input id="searchInput" class="search" placeholder="Search period/date" />
+            <button id="exportCsvBtn" class="btn">Export CSV</button>
+            <button id="exportXlsxBtn" class="btn purple">Export XLSX</button>
+            <button id="printBtn" class="btn secondary">Print</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table id="amoTable">
+            <thead>
+              <tr>
+                <th><div class="sortable left" data-key="period">Period<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="date">Date<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="emi">EMI (₹)<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="interest">Interest (₹)<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="principal">Principal (₹)<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="prepay">Prepayment (₹)<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="expenses">Taxes+Ins+Maint (₹)<span class="sort-ind">↕</span></div></th>
+                <th><div class="sortable" data-key="balance">Balance (₹)<span class="sort-ind">↕</span></div></th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody">
+              <tr><td colspan="8" style="text-align:center; color:var(--muted)">No data yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <button id="prevPage" class="page-btn" disabled>Prev</button>
+          <button id="nextPage" class="page-btn" disabled>Next</button>
+          <div class="page-info" id="pageInfo">Page 0 of 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const fmtINR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
+  const fmtNum = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
+  const q = id => document.getElementById(id);
+
+  let rawSchedule = []; let displayRows = []; let currentPage = 1; const pageSize = 20; let currentSort = { key: 'period', dir: 'asc' }; let donut, yearly;
+
+  function monthsTotal(){ const y = Number(q('tenureY').value || 0); const m = Number(q('tenureM').value || 0); return y*12 + m; }
+  function calcEMI(P, annualRatePct, nMonths){ const r = (annualRatePct/100)/12; if (r === 0) return P / nMonths; const pow = Math.pow(1+r, nMonths); return P*r*pow/(pow-1); }
+  function addMonthsToYYYYMM(yyyyMm, offset){ if(!yyyyMm) return ''; const [y,m] = yyyyMm.split('-').map(Number); const d = new Date(y, m-1, 1); d.setMonth(d.getMonth()+offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function buildSchedule(P, annualRatePct, nMonths, startYYYYMM, monthlyExtra, prepayStart, prepayEnd, lumpSum, lumpOffset, prepayMode, ptYear, insYear, maintMo){
+    const r = (annualRatePct/100)/12; let emi = calcEMI(P, annualRatePct, nMonths);
+    const schedule = []; let bal = P; let totalPrepay = 0; const ptMo = (ptYear||0)/12; const insMo = (insYear||0)/12; const expMo = ptMo + insMo + (maintMo||0);
+    const startIdx = Number(prepayStart || 0); const endIdx = (prepayEnd === '' || prepayEnd === null) ? Infinity : Number(prepayEnd);
+    for(let i=1; i<=nMonths && bal>0.01; i++){
+      const dt = addMonthsToYYYYMM(startYYYYMM, i-1);
+      const interest = bal * ((annualRatePct/100)/12); let principal = emi - interest; if(principal < 0) principal = 0;
+      let prepay = 0; if ((i-1) >= startIdx && (i-1) <= endIdx) prepay += Number(monthlyExtra || 0);
+      if (lumpSum && (i-1) === Number(lumpOffset || 0)) prepay += Number(lumpSum || 0);
+      if (principal + prepay > bal) prepay = Math.max(0, bal - principal);
+      const principalPaid = principal + prepay; bal = bal - principalPaid; totalPrepay += prepay;
+      schedule.push({ period:i, date:dt, emi, interest, principal, prepay, expenses: expMo, balance: Math.max(0, bal) });
+      if (prepayMode === 'reduceEMI' && prepay > 0 && bal > 0.01) { const monthsLeft = nMonths - i; emi = monthsLeft > 0 ? calcEMI(bal, annualRatePct, monthsLeft) : bal; }
+      if (bal <= 0.01) break;
+    }
+    const totalPI = schedule.reduce((s,r)=>s+r.emi,0); const totalExpenses = schedule.reduce((s,r)=>s+r.expenses,0) + Number(q('fees').value || 0);
+    const totalInterest = schedule.reduce((s,r)=>s+r.interest,0);
+    const totalPaymentPI = totalPI + totalPrepay; const grandTotal = totalPaymentPI + totalExpenses;
+    return { emi: schedule.length ? schedule[0].emi : emi, totalInterest, totalPrepay, totalPaymentPI, grandTotal, ptMo, insMo, maintMo:(maintMo||0), schedule };
+  }
+
+  function renderSummary(calc){
+    q('emiOut').textContent = fmtINR.format(calc.emi);
+    q('totalIntOut').textContent = fmtINR.format(calc.totalInterest);
+    q('totalPayOut').textContent = fmtINR.format(calc.totalPaymentPI);
+    q('grandTotalOut').textContent = fmtINR.format(calc.grandTotal);
+    q('ptMo').textContent = fmtINR.format(calc.ptMo);
+    q('insMo').textContent = fmtINR.format(calc.insMo);
+    q('maintMo').textContent = fmtINR.format(calc.maintMo);
+    q('totalMonthly').textContent = fmtINR.format(calc.emi + calc.ptMo + calc.insMo + calc.maintMo);
+  }
+
+  function setPagination(total){ const pages = Math.max(1, Math.ceil(total / pageSize)); currentPage = Math.min(currentPage, pages); q('pageInfo').textContent = `Page ${pages===0?0:currentPage} of ${pages}`; q('prevPage').disabled = currentPage <= 1 || pages===0; q('nextPage').disabled = currentPage >= pages || pages===0; }
+  function applyFiltersAndSort(){ const term = (q('searchInput').value || '').toLowerCase().trim(); displayRows = rawSchedule.filter(r => { const hay = `${r.period} ${r.date}`.toLowerCase(); return term === '' || hay.includes(term); }); const key = currentSort.key, dir = currentSort.dir; displayRows.sort((a,b) => { const va = a[key], vb = b[key]; return dir === 'asc' ? (va > vb) - (va < vb) : (vb > va) - (vb < va); }); setPagination(displayRows.length); renderTablePage(); }
+  function renderTablePage(){ const body = q('scheduleBody'); body.innerHTML = ''; if (!displayRows.length){ body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--muted)">No data</td></tr>'; return; } const start = (currentPage-1)*pageSize; const rows = displayRows.slice(start, start+pageSize); const frag = document.createDocumentFragment(); rows.forEach(r => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${r.period}</td><td>${r.date || '—'}</td><td>${fmtINR.format(r.emi)}</td><td>${fmtINR.format(r.interest)}</td><td>${fmtINR.format(r.principal)}</td><td>${fmtINR.format(r.prepay)}</td><td>${fmtINR.format(r.expenses)}</td><td>${fmtINR.format(r.balance)}</td>`; frag.appendChild(tr); }); body.appendChild(frag); }
+  function exportCSV(rows){ const header = ['Period','Date','EMI (₹)','Interest (₹)','Principal (₹)','Prepayment (₹)','Taxes+Ins+Maint (₹)','Balance (₹)']; const lines = [header.join(',')].concat(rows.map(r => [r.period, r.date||'', fmtNum.format(r.emi), fmtNum.format(r.interest), fmtNum.format(r.principal), fmtNum.format(r.prepay), fmtNum.format(r.expenses), fmtNum.format(r.balance)].join(','))); const csv = lines.join('\n'); const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'amortization_schedule.csv'; a.click(); URL.revokeObjectURL(url); }
+  function exportXLSX(calc){ if (!window.XLSX) { alert('XLSX library not loaded.'); return; } const wb = XLSX.utils.book_new(); const summaryAoA = [['Metric','Value'], ['Monthly EMI', calc.emi], ['Total Interest', calc.totalInterest], ['Total Payment (P+I)', calc.totalPaymentPI], ['Grand Total (incl. expenses)', calc.grandTotal], ['Property tax / mo', calc.ptMo], ['Insurance / mo', calc.insMo], ['Maintenance / mo', calc.maintMo], ['Total monthly (EMI + expenses)', calc.emi + calc.ptMo + calc.insMo + calc.maintMo]]; const wsSummary = XLSX.utils.aoa_to_sheet(summaryAoA); XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary'); const header = ['Period','Date','EMI (₹)','Interest (₹)','Principal (₹)','Prepayment (₹)','Taxes+Ins+Maint (₹)','Balance (₹)']; const dataAoA = [header].concat(rawSchedule.map(r => [r.period, r.date||'', r.emi, r.interest, r.principal, r.prepay, r.expenses, r.balance])); const wsAmo = XLSX.utils.aoa_to_sheet(dataAoA); wsAmo['!cols'] = [{ wch:8 }, { wch:10 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:14 }, { wch:18 }, { wch:14 }]; XLSX.utils.book_append_sheet(wb, wsAmo, 'Amortization'); XLSX.writeFile(wb, 'emi_amortization.xlsx'); }
+
+  // Sorting & search & pagination
+  document.querySelectorAll('.sortable').forEach(el => { el.addEventListener('click', () => { const key = el.getAttribute('data-key'); currentSort = (currentSort.key === key) ? { key, dir: currentSort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }; applyFiltersAndSort(); }); });
+  q('searchInput').addEventListener('input', () => { currentPage = 1; applyFiltersAndSort(); });
+  q('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderTablePage(); setPagination(displayRows.length); } });
+  q('nextPage').addEventListener('click', () => { const pages = Math.ceil(displayRows.length / pageSize); if (currentPage < pages) { currentPage++; renderTablePage(); setPagination(displayRows.length); } });
+
+  // Charts: responsive options to fit screen
+  function renderCharts(calc){
+    const { schedule, ptMo, insMo, maintMo } = calc;
+    const totalPrincipal = schedule.reduce((s,r)=>s+r.principal,0);
+    const totalInterest = schedule.reduce((s,r)=>s+r.interest,0);
+    const totalPrepay = schedule.reduce((s,r)=>s+r.prepay,0);
+    const totalExpenses = schedule.length * (ptMo + insMo + maintMo);
+
+    const donutCtx = document.getElementById('donutChart').getContext('2d');
+    if (donut) donut.destroy();
+    donut = new Chart(donutCtx, {
+      type:'doughnut',
+      data:{ labels:['Principal','Interest','Prepayments','Expenses'], datasets:[{ data:[totalPrincipal,totalInterest,totalPrepay,totalExpenses], backgroundColor:['#22c55e','#6d28d9','#f59e0b','#ef4444'] }] },
+      options:{ responsive:true, maintainAspectRatio:true, aspectRatio:1.6, plugins:{ legend:{ labels:{ color:'#e5e7eb' } } } }
+    });
+
+    const byYear = new Map(); schedule.forEach(r=>{ const y = (r.date||'').split('-')[0] || 'Year'; const row = byYear.get(y) || {principal:0, interest:0}; row.principal += r.principal; row.interest += r.interest; byYear.set(y,row); });
+    const years = Array.from(byYear.keys()); const principals = years.map(y=>byYear.get(y).principal); const interests = years.map(y=>byYear.get(y).interest);
+    const yearlyCtx = document.getElementById('yearlyChart').getContext('2d');
+    if (yearly) yearly.destroy();
+    yearly = new Chart(yearlyCtx, { type:'bar', data:{ labels:years, datasets:[ {label:'Principal', data:principals, backgroundColor:'#22c55e'}, {label:'Interest', data:interests, backgroundColor:'#14b8a6'} ] }, options:{ responsive:true, maintainAspectRatio:true, aspectRatio:1.8, plugins:{ legend:{ labels:{ color:'#e5e7eb' } } }, scales:{ x:{ ticks:{ color:'#e5e7eb' } }, y:{ ticks:{ color:'#e5e7eb' } } } } });
+  }
+
+  // Calculate & Reset
+  q('calcBtn').addEventListener('click', () => {
+    const P = Number(q('amount').value || 0); const rate = Number(q('rate').value || 0); const nMonths = monthsTotal();
+    if (P <= 0 || rate < 0 || nMonths <= 0) { alert('Please enter valid amount, rate, and tenure.'); return; }
+    const startDate = q('startDate').value; const monthlyExtra = Number(q('monthlyExtra').value || 0); const prepayStart = q('prepayStart').value; const prepayEnd = q('prepayEnd').value; const lumpSum = Number(q('lumpSum').value || 0); const lumpOffset = Number(q('lumpMonth').value || 0); const prepayMode = q('prepayMode').value; const ptYear = Number(q('propTax').value || 0); const insYear = Number(q('homeIns').value || 0); const maintMo = Number(q('maint').value || 0);
+    const calc = buildSchedule(P, rate, nMonths, startDate, monthlyExtra, prepayStart, prepayEnd, lumpSum, lumpOffset, prepayMode, ptYear, insYear, maintMo);
+    renderSummary(calc);
+    rawSchedule = calc.schedule.slice(); currentPage = 1; currentSort = { key: 'period', dir: 'asc' }; applyFiltersAndSort();
+    q('exportCsvBtn').onclick = () => exportCSV(rawSchedule);
+    q('printBtn').onclick = () => window.print();
+    q('exportXlsxBtn').onclick = () => exportXLSX(calc);
+    renderCharts(calc);
+  });
+
+  q('resetBtn').addEventListener('click', () => {
+    ['amount','rate','tenureY','tenureM','startDate','propTax','homeIns','maint','fees','monthlyExtra','prepayStart','prepayEnd','lumpSum','lumpMonth'].forEach(id => (q(id).value = ''));
+    ['emiOut','totalIntOut','totalPayOut','grandTotalOut','ptMo','insMo','maintMo','totalMonthly'].forEach(id => (q(id).textContent = '–'));
+    rawSchedule = []; displayRows = []; currentPage = 1; applyFiltersAndSort(); if (donut) donut.destroy(); if (yearly) yearly.destroy();
+  });
+</script>
+</body>
+</html>
